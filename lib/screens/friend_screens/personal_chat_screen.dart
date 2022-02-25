@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,6 +18,8 @@ class _ChatScreenState extends State<ChatScreen> {
   var userSnapshot;
   var friendSnapshot;
   bool isLoading = true;
+  StreamController topBarController = StreamController();
+
   Future<void> getUserSnapshot() async {
     userSnapshot = await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.email!).get();
     friendSnapshot = await FirebaseFirestore.instance.collection('users').doc(widget.email).get();
@@ -30,34 +34,108 @@ class _ChatScreenState extends State<ChatScreen> {
     getUserSnapshot();
   }
 
-  Widget messageTileMaker(String message,String senderEmail,var screenWidth){
-    return Row(
-      mainAxisAlignment: senderEmail==userSnapshot.get("email") ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.all(6),
-          margin: EdgeInsets.symmetric(vertical: 3,horizontal: 10),
-          constraints: BoxConstraints(minWidth: 20,maxWidth: screenWidth*0.5),
-          decoration: BoxDecoration(
-            color: Colors.white,
+  Widget onMessageNotLongPressedTopBar (var screenWidth){
+    return Container(
+      color: Color(0xff075E54),
+      child: Row(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 18,top: 4,bottom: 4,right: 15),
+            child: CircleAvatar(
+              backgroundImage: NetworkImage(friendSnapshot.get("imageURL")),
+              radius: screenWidth*0.06,
+            ),
           ),
-          child: Column(
-            //mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Visibility(
-                visible: senderEmail==userSnapshot.get("email") ? false : true,
-                child: Container(
-                  margin: EdgeInsets.only(bottom: 3),
-                  child: Text(senderEmail==userSnapshot.get("email") ? userSnapshot.get("username") : friendSnapshot.get("username"), maxLines: 1, overflow: TextOverflow.ellipsis,style: TextStyle(color: Colors.blue,fontSize: screenWidth*0.04,fontWeight: FontWeight.w900,fontFamily: "SFpro"),),
+          Text(friendSnapshot.get("username"),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: screenWidth*0.05
+            ),),
+        ],
+      ),
+    );
+  }
+
+  Widget onMessageLongPressedTopBar (var screenWidth, bool messageDeleted, String senderEmail,String docId,String chatDocId){
+    return Container(
+      color: Color(0xff075E54),
+      height: screenWidth*0.12 + 8,
+      child: Row(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 18,top: 4,bottom: 4,right: 15),
+            child: GestureDetector(
+              onTap: (){
+                topBarController.sink.add(null);
+              },
+              child: Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+                size: screenWidth*0.08,
+              ),
+
+            )
+          ),
+          Visibility(
+            visible: !messageDeleted,
+            child: GestureDetector(
+              onTap: () async {
+                if(userSnapshot.get("email")==senderEmail){
+                  await FirebaseFirestore.instance.collection('chats').doc(chatDocId).collection('messages').doc(docId).update({"message" : "This message was deleted","messageDeleted" : true});
+                  topBarController.sink.add(null);
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.only(left: 18,top: 4,bottom: 4,right: 15),
+                child: Icon(
+                    Icons.delete,
+                    color: Colors.white,
+                    size: screenWidth*0.08,
                 ),
               ),
-              Text(message,style: TextStyle(fontFamily: "SFpro",fontWeight: FontWeight.w500,fontSize: screenWidth*0.037),),
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  Widget messageTileMaker(String message,String senderEmail,var screenWidth,String docId, String chatDocId, bool deletionStatus){
+        return Row(
+          mainAxisAlignment: senderEmail==userSnapshot.get("email") ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onLongPress: () async {
+                if(userSnapshot.get("email") == senderEmail){
+                  topBarController.sink.add(onMessageLongPressedTopBar(screenWidth,deletionStatus,senderEmail,docId,chatDocId));
+                }
+              },
+              child: Container(
+                padding: EdgeInsets.all(6),
+                margin: EdgeInsets.symmetric(vertical: 3,horizontal: 10),
+                constraints: BoxConstraints(minWidth: 20,maxWidth: screenWidth*0.5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                ),
+                child: Column(
+                  //mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Visibility(
+                      visible: senderEmail==userSnapshot.get("email") ? false : true,
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 3),
+                        child: Text(senderEmail==userSnapshot.get("email") ? userSnapshot.get("username") : friendSnapshot.get("username"), maxLines: 1, overflow: TextOverflow.ellipsis,style: TextStyle(color: Colors.blue,fontSize: screenWidth*0.04,fontWeight: FontWeight.w900,fontFamily: "SFpro"),),
+                      ),
+                    ),
+                    Text(message,style: TextStyle(fontFamily: "SFpro",fontWeight: FontWeight.w500,fontSize: screenWidth*0.037),),
+                  ],
+                ),
+              ),
+            ),
+          ],);
   }
 
   @override
@@ -71,26 +149,14 @@ class _ChatScreenState extends State<ChatScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              color: Color(0xff075E54),
-              child: Row(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(left: 18,top: 4,bottom: 4,right: 15),
-                    child: CircleAvatar(
-                      backgroundImage: NetworkImage(friendSnapshot.get("imageURL")),
-                      radius: screenWidth*0.06,
-                    ),
-                  ),
-                  Text(friendSnapshot.get("username"),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                    color: Colors.white,
-                    fontSize: screenWidth*0.05
-                  ),),
-                ],
-              ),
+            StreamBuilder(
+              stream: topBarController.stream,
+              builder: (context, AsyncSnapshot snapshot){
+                if(snapshot.hasData && snapshot.data != null){
+                  return snapshot.data;
+                }
+                return onMessageNotLongPressedTopBar(screenWidth);
+              },
             ),
             Expanded(
               child: StreamBuilder(
@@ -101,7 +167,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       Container(width: screenWidth,height: 3,),
                     ];
                     snapshot.data.docs.forEach((element) => {
-                      allMessages.add(messageTileMaker(element.get("message"), element.get("email"), screenWidth)),
+                      allMessages.add(messageTileMaker(element.get("message"), element.get("email"), screenWidth,element.id,widget.chatDocId,element.get("messageDeleted"))),
                     });
                     return ListView(
                       scrollDirection: Axis.vertical,
@@ -146,7 +212,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       String toStore = messageController.text;
                       messageController.text = "";
                       var timestamp = DateTime.now().microsecondsSinceEpoch;
-                      await FirebaseFirestore.instance.collection('chats').doc(widget.chatDocId).collection('messages').add({"timestamp" : timestamp,"message":toStore,"email" : userSnapshot.get("email"),});
+                      await FirebaseFirestore.instance.collection('chats').doc(widget.chatDocId).collection('messages').add({"timestamp" : timestamp,"message":toStore,"email" : userSnapshot.get("email"),"messageDeleted" : false});
                       await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.email!).collection("personal chats").doc(widget.email).update({"timestamp" : timestamp,"lastMessage" : toStore});
                       await FirebaseFirestore.instance.collection('users').doc(widget.email).collection("personal chats").doc(FirebaseAuth.instance.currentUser!.email!).update({"timestamp" : timestamp,"lastMessage" : toStore});
                     },
