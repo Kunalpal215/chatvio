@@ -21,7 +21,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final formKey = GlobalKey<FormState>();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
-  bool signingUserIn = false;
+  bool UpdatingProfile = false;
   Future<void> pickImage() async {
     //bool check = await _permission.isGranted;
     print("HELLO");
@@ -75,7 +75,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     return SafeArea(
       child: Scaffold(
-          body: signingUserIn==true ? screenToShowOnImageUpload() : Form(
+          body: UpdatingProfile==true ? screenToShowOnImageUpload() : Form(
             key: formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -171,7 +171,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     }
                     else{
                       setState(() {
-                        signingUserIn=true;
+                        UpdatingProfile=true;
                       });
                       await uploadImage();
                       await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.email!).update({"username":usernameController.text,"possibleSearch" : possibleSearchPrefixes,"bio" : bioController.text});
@@ -192,7 +192,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: Text('Save'),),
               ],
             ),
-          )),
+          ),
+      ),
     );
   }
 }

@@ -10,11 +10,15 @@ class GoogleAuthClass{
   GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email','https://www.googleapis.com/auth/contacts.readonly']);
   Future<void> signInWithGoogle(BuildContext context) async{
     try{
+      print("1");
       GoogleSignInAccount? googleSignInAccount = await googleSignIn.signIn();
+      print("fkjd");
       if(googleSignInAccount!=null){
         GoogleSignInAuthentication googleSignInAuthentication = await googleSignInAccount.authentication;
         AuthCredential _authCredential = GoogleAuthProvider.credential(idToken: googleSignInAuthentication.idToken,accessToken: googleSignInAuthentication.accessToken);
+        print("gdfkj");
         try{
+          print("YES");
           UserCredential _userCredential = await _auth.signInWithCredential(_authCredential);
           print("SIGNED IN");
           User _user = _userCredential.user!;
@@ -31,11 +35,13 @@ class GoogleAuthClass{
           }
         }
         on FirebaseException catch (error){
+          print("HELLO");
           print(error.message);
         }
       }
     }
     catch (error){
+      print("YESFDJS");
       print(error);
     }
   }

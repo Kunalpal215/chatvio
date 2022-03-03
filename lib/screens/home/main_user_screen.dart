@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:chat_app_final/auth/google_auth.dart';
 import 'package:chat_app_final/screens/friend_screens/personal_chat_screen.dart';
+import 'package:chat_app_final/screens/posts/make_a_post.dart';
+import 'package:chat_app_final/screens/profile_screens/friend_profile_screen.dart';
 import 'package:chat_app_final/screens/profile_screens/profile_screen.dart';
 import 'package:chat_app_final/screens/profile_screens/request_user_file.dart';
 import 'package:chat_app_final/screens/user_search/search_screen.dart';
@@ -25,6 +27,44 @@ class _MainUserScreenState extends State<MainUserScreen>{
   bool userLoaded = false;
   StreamController userImageController = StreamController();
   StreamController chatsController = StreamController();
+
+  Widget PostShowMaker(QueryDocumentSnapshot snapshot, String username ,var screenWidth){
+    return Container(
+      margin: EdgeInsets.all(10),
+      padding: EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Image.network(snapshot.get("imageURL"),width: screenWidth*0.9,height: screenWidth*0.9,fit: BoxFit.cover,)),
+          Padding(
+            padding: EdgeInsets.only(top: 8,left: 4,right: 4,),
+            child: Text(username,
+              style: TextStyle(
+                  fontFamily: "SFpro",
+                  fontSize: screenWidth*0.043,
+                  fontWeight: FontWeight.bold
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: 1,left: 4,right: 4,bottom: 8),
+            child: Text(snapshot.get("postDescp"),
+              style: TextStyle(
+                  fontFamily: "SFpro",
+                  fontSize: screenWidth*0.04,
+                  fontWeight: FontWeight.w500
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
   Future<void> getImageURL() async {
     String toInsert = await FirebaseStorage.instance
         .ref(FirebaseAuth.instance.currentUser!.email! + "userImage")
@@ -120,58 +160,104 @@ class _MainUserScreenState extends State<MainUserScreen>{
   }
 
   Widget friendChatUserTile(
-      String username, String imageURL, String chatDocId,String email,String timestamp ,String lastMessage, var screenWidth, var screenHeight){
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => ChatScreen(
-                  chatDocId: chatDocId,
-                  email: email,
-                )));
-      },
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 6,horizontal: 4),
-        decoration: BoxDecoration(
-          //color: Colors.yellow,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.black,width: 0.5),
+      String username, String imageURL, String chatDocId,String email,String timestamp ,String lastMessage,var screenWidth, var screenHeight){
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                      chatDocId: chatDocId,
+                      email: email,
+                    )));
+          },
+          child: Container(
+            margin: EdgeInsets.symmetric(vertical: 8,horizontal: 4),
+            height: screenWidth*0.16,
+            decoration: BoxDecoration(
+              //color: Colors.yellow,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.black,width: 0.5),
+            ),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: screenWidth*0.17+15,
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.only(bottom: 7,right: 6),
+                      child: Text(username,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: screenWidth*0.04,fontWeight: FontWeight.w800,fontFamily: "SFpro"),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.only(right: 6),
+                      width: (screenWidth*0.83)-29,
+                      child: Text(timestamp == "0" ? "Start chatting with your new friend :)" : lastMessage,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: screenWidth*0.034,fontWeight: FontWeight.w400,fontFamily: "SFpro"),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          )
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          child: GestureDetector(
+            onTap: () async {
+              print("YES PRESSED");
+              DocumentSnapshot friendSnapshot = await FirebaseFirestore.instance.collection('users').doc(email).get();
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => FriendProfileScreen(username: username, imageURL: imageURL, email: email, bio: friendSnapshot.get("bio"))));
+            },
+            child: Container(
               padding: EdgeInsets.only(left: 15,top: 8,bottom: 8,right: screenWidth*0.05),
               child: CircleAvatar(
                 backgroundImage: NetworkImage(imageURL),
                 radius: screenWidth*0.06,
               ),
             ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.only(bottom: 7,right: 6),
-                  child: Text(username,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    style: TextStyle(fontSize: screenWidth*0.04,fontWeight: FontWeight.w800,fontFamily: "SFpro"),
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.only(bottom: 7,right: 6),
-                  width: (screenWidth*0.83)-29,
-                  child: Text(timestamp == "0" ? "Start chatting with your new friend :)" : lastMessage,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    style: TextStyle(fontSize: screenWidth*0.034,fontWeight: FontWeight.w400,fontFamily: "SFpro"),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
-      )
+      ],
+    );
+  }
+
+  Future<Widget> getPosts(AsyncSnapshot snapshot,var screenWidth) async {
+    print("YAHA PAHUCHA HAI");
+    List<Widget> postsList = [];
+    for(var i = 0;i<snapshot.data.docs.length ; i++){
+      print("2 Yaha pahuc");
+      print((snapshot.data.docs[i]).get("email"));
+      QuerySnapshot friendPostSnapshot = await FirebaseFirestore.instance.collection('users').doc((snapshot.data.docs[i]).get("email")).collection('posts').orderBy("timestamp").limit(3).get();
+      print("Passed from here");
+      friendPostSnapshot.docs.forEach((postElement) {
+        print("YES");
+        postsList.add(PostShowMaker(postElement,(snapshot.data.docs[i]).get("username"),screenWidth));
+        print("YES2");
+      });
+    }
+    if (postsList.length == 0) {
+      print("HELLO HERE");
+      return Center(
+        child: Text("No recent Posts"),
+      );
+    }
+    return ListView(
+      children: postsList,
     );
   }
 
@@ -180,7 +266,7 @@ class _MainUserScreenState extends State<MainUserScreen>{
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.white,
@@ -267,8 +353,11 @@ class _MainUserScreenState extends State<MainUserScreen>{
                   text: "Chats",
                 ),
                 Tab(
-                  text: "Friend Requests",
+                  text: "Requests",
                 ),
+                Tab(
+                  text: "Posts",
+                )
               ],
             ),
           ),
@@ -356,8 +445,35 @@ class _MainUserScreenState extends State<MainUserScreen>{
                   );
                 },
               ),
+              StreamBuilder(
+                stream: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.email!).collection('personal chats').snapshots(),
+                builder: (context,AsyncSnapshot snapshot){
+                  if (snapshot.hasData) {
+                    print(snapshot.data.docs.toString());
+                    print("HELLO 2");
+                    return FutureBuilder(
+                      future: getPosts(snapshot, screenWidth),
+                      builder: (context, AsyncSnapshot postsSnapshot){
+                        if(postsSnapshot.hasData){
+                          return postsSnapshot.data;
+                        }
+                        return Container();
+                      },
+                    );
+                  }
+                  return Center(
+                    child: Text("Loading..."),
+                  );
+                },
+              ),
             ],
           ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: (){
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) => PostMakerScreen()));
+          },
+          child: Icon(Icons.add),
+        ),
       ),
     );
   }
